@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: safe-ai-mailroom
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: AI_PROVIDER
+        value: auto
+      - key: DATABASE_URL
+        value: sqlite:///./mailroom.db

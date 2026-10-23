@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.env
+.venv/
+mailroom.db
+mailroom.db-shm
+mailroom.db-wal
+server.log
+cf_tunnel.log
+submission_urls.json
