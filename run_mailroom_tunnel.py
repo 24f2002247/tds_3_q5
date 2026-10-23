@@ -4,12 +4,24 @@ import re
 import subprocess
 import sys
 import time
-import requests
+import urllib.request
+import urllib.error
 
 sys.stdout.reconfigure(line_buffering=True)
 DIR = os.path.dirname(os.path.abspath(__file__))
 SERVER_PORT = int(os.environ.get("PORT", "8000"))
 CLOUDFLARED_PATH = r"C:\Users\Jayraj\cloudflared.exe"
+
+
+def check_http(url: str, timeout: int = 5) -> int:
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "HealthChecker/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            return response.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except Exception:
+        return 0
 
 
 def start():
@@ -27,13 +39,10 @@ def start():
     # Health check
     for _ in range(25):
         time.sleep(1)
-        try:
-            r = requests.get(f"http://127.0.0.1:{SERVER_PORT}/health", timeout=1)
-            if r.status_code == 200:
-                print(f"Mailroom Agent is UP on port {SERVER_PORT}!")
-                break
-        except Exception:
-            pass
+        status = check_http(f"http://127.0.0.1:{SERVER_PORT}/health", timeout=1)
+        if status == 200:
+            print(f"Mailroom Agent is UP on port {SERVER_PORT}!")
+            break
     else:
         print("Server failed to respond to health check.")
         server_proc.terminate()
@@ -69,15 +78,14 @@ def start():
 
     if not public_base_url:
         print("Failed to obtain Cloudflare tunnel URL within timeout.")
+        server_proc.terminate()
+        cf_proc.terminate()
         return
 
     # Verify public HTTPS endpoints
     print("\nVerifying live public HTTPS endpoint...")
-    try:
-        r_health = requests.get(f"{public_base_url}/health", timeout=10)
-        print(f"GET {public_base_url}/health -> Status {r_health.status_code}")
-    except Exception as e:
-        print(f"Failed to reach {public_base_url}/health: {e}")
+    status = check_http(f"{public_base_url}/health", timeout=10)
+    print(f"GET {public_base_url}/health -> Status {status}")
 
     urls = {
         "base_url": public_base_url,
@@ -104,6 +112,7 @@ def start():
         print("Shutting down...")
         server_proc.terminate()
         cf_proc.terminate()
+
 
 
 if __name__ == "__main__":
